@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include "GL/glew.h"
 #include "Math.hpp"
 
@@ -15,3 +16,4 @@ void destroyMesh(Mesh &m);
 
 Mesh makeGroundMesh(float halfSize);
 Mesh makeCubeMesh();
+Mesh loadObjMesh(const std::string &path);

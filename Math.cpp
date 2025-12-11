@@ -69,6 +69,33 @@ Mat4 Mat4::scale(const Vec3 &s) {
     return r;
 }
 
+Mat4 Mat4::rotateX(float radians) {
+    float c = std::cos(radians);
+    float s = std::sin(radians);
+    Mat4 r = Mat4::identity();
+    r.m[5] = c;   r.m[9] = -s;
+    r.m[6] = s;   r.m[10] = c;
+    return r;
+}
+
+Mat4 Mat4::rotateY(float radians) {
+    float c = std::cos(radians);
+    float s = std::sin(radians);
+    Mat4 r = Mat4::identity();
+    r.m[0] = c;   r.m[8] = s;
+    r.m[2] = -s;  r.m[10] = c;
+    return r;
+}
+
+Mat4 Mat4::rotateZ(float radians) {
+    float c = std::cos(radians);
+    float s = std::sin(radians);
+    Mat4 r = Mat4::identity();
+    r.m[0] = c;   r.m[4] = -s;
+    r.m[1] = s;   r.m[5] = c;
+    return r;
+}
+
 Mat4 Mat4::ortho(float left, float right, float bottom, float top, float nearZ, float farZ) {
     Mat4 r{};
     r.m = {

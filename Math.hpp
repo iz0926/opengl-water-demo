@@ -41,6 +41,9 @@ struct Mat4 {
     static Mat4 lookAt(const Vec3 &eye, const Vec3 &target, const Vec3 &up);
     static Mat4 translate(const Vec3 &t);
     static Mat4 scale(const Vec3 &s);
+    static Mat4 rotateX(float radians);
+    static Mat4 rotateY(float radians);
+    static Mat4 rotateZ(float radians);
     static Mat4 ortho(float left, float right, float bottom, float top, float nearZ, float farZ);
 };
 

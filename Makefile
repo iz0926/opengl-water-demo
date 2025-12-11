@@ -1,5 +1,5 @@
 APP := cs1750_project
-SRC := main.cpp Math.cpp GLHelpers.cpp Mesh.cpp Waves.cpp Stone.cpp Input.cpp
+SRC := main.cpp Math.cpp GLHelpers.cpp Mesh.cpp Waves.cpp Stone.cpp Input.cpp Boat.cpp Fish.cpp Rod.cpp
 OBJ := $(SRC:.cpp=.o)
 
 OS := $(shell uname -s)

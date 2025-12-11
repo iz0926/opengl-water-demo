@@ -1,5 +1,6 @@
 #include <array>
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -16,6 +17,9 @@
 #include "Waves.hpp"
 #include "Stone.hpp"
 #include "Input.hpp"
+#include "Boat.hpp"
+#include "Fish.hpp"
+#include "Rod.hpp"
 
 namespace {
 
@@ -80,8 +84,8 @@ int main() {
     const GLint locSkyHorizon = glGetUniformLocation(skyProgram, "uHorizonColor");
     const GLint locSkyUnderwater = glGetUniformLocation(skyProgram, "uUnderwater");
 
-    GLuint fsQuadVao = 0;
-    GLuint fsQuadVbo = 0;
+GLuint fsQuadVao = 0;
+GLuint fsQuadVbo = 0;
     {
         float verts[] = {
             -1.0f, -1.0f,
@@ -226,18 +230,37 @@ int main() {
     Mesh cube   = makeCubeMesh();
     Mesh cube2  = makeCubeMesh();
     Mesh waterMesh = makeGroundMesh(halfSize); // big plane at water height
+    Mesh boatMesh{};
+    Mesh fishMesh{};
+    try {
+        boatMesh = loadObjMesh("SpeedBoat/10634_SpeedBoat_v01_LOD3.obj");
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << " falling back to cube for boat" << std::endl;
+        boatMesh = makeCubeMesh();
+    }
+    try {
+        fishMesh = loadObjMesh("Fish/12265_Fish_v1_L2.obj");
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << " falling back to cube for fish" << std::endl;
+        fishMesh = makeCubeMesh();
+    }
 
     Vec3 cubePos(0.0f, 0.5f, 0.0f);
     Vec3 cube2Pos(2.5f, 0.5f, -1.5f);
     float cubeVelY = 0.0f;
     float cube2VelY = 0.0f;
-
-    // Cube click interaction state
-    bool leftMouseWasDown = false;
-    float cubePressTime = 0.0f;
-    int activeCubeIndex = -1;
-    int controlledCubeIndex = 0;
-    bool vWasDown = false;
+    Boat boat;
+    boat.pos = Vec3(-4.0f, 0.4f, 1.0f);
+    boat.yawDeg = 20.0f;
+    boat.speed = 0.0f;
+    std::vector<Fish> fish;
+    initFish(fish, 20, kWaterHeight);
+    int fishCaught = 0;
+    Rod rod;
+    bool boatMode = false;
+    bool prevBoatToggle = false;
+    float boatViewYawOffset = 0.0f;
+    float boatCamYawDeg = 0.0f;
 
     // Camera & timing
     Vec3 cameraPos(0.0f, 2.0f, 6.0f);
@@ -293,6 +316,21 @@ int main() {
         lastTime = now;
         const float timef = static_cast<float>(now);
 
+        // Boat mode toggle
+        bool boatToggleNow = (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS);
+        if (boatToggleNow && !prevBoatToggle) {
+            boatMode = !boatMode;
+            if (boatMode) {
+                // Align boat heading to current view
+                boat.yawDeg = g_yawDeg;
+                boat.speed = 0.0f;
+                boatViewYawOffset = 0.0f;
+                const float boatYawVisualOffset = 90.0f; // model nose rotates +90 deg
+                boatCamYawDeg = boat.yawDeg + boatYawVisualOffset;
+            }
+        }
+        prevBoatToggle = boatToggleNow;
+
         // Camera orientation
         const float yawRad = g_yawDeg * (kPi / 180.0f);
         const float pitchRad = g_pitchDeg * (kPi / 180.0f);
@@ -304,18 +342,29 @@ int main() {
         Vec3 up = normalize(cross(right, forward));
 
         const float moveSpeed = (cameraPos.y < kWaterHeight) ? 2.2f : 4.0f;
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += forward * (moveSpeed * dt);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos += forward * (-moveSpeed * dt);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos += right * (-moveSpeed * dt);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += right * (moveSpeed * dt);
-        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos += worldUp * (-moveSpeed * dt);
-        if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos += worldUp * (moveSpeed * dt);
+        if (!boatMode) {
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += forward * (moveSpeed * dt);
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos += forward * (-moveSpeed * dt);
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos += right * (-moveSpeed * dt);
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += right * (moveSpeed * dt);
+            if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos += worldUp * (-moveSpeed * dt);
+            if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos += worldUp * (moveSpeed * dt);
+        } else {
+            // In boat mode, camera motion is handled after boat update.
+        }
 
-        const float turnSpeed = 60.0f;
-        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  g_yawDeg -= turnSpeed * dt;
-        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) g_yawDeg += turnSpeed * dt;
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    g_pitchDeg += turnSpeed * dt;
-        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  g_pitchDeg -= turnSpeed * dt;
+        const float turnSpeed = 90.0f; // camera turn
+        if (!boatMode) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  g_yawDeg -= turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) g_yawDeg += turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    g_pitchDeg += turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  g_pitchDeg -= turnSpeed * dt;
+        } else {
+            if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  boatViewYawOffset -= turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) boatViewYawOffset += turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    g_pitchDeg += turnSpeed * dt;
+            if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  g_pitchDeg -= turnSpeed * dt;
+        }
         if (g_pitchDeg > 89.0f)  g_pitchDeg = 89.0f;
         if (g_pitchDeg < -89.0f) g_pitchDeg = -89.0f;
 
@@ -357,41 +406,72 @@ int main() {
             }
         }
 
-        // Cube mouse interaction 
-        int mouseState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        bool leftMouseDown = (mouseState == GLFW_PRESS);
-
-        // On mouse press: start pushing the controlled cube
-        if (leftMouseDown && !leftMouseWasDown) {
-            activeCubeIndex = controlledCubeIndex; // 0 or 1
-            cubePressTime = 0.0f;
+        // Launch red cube (rod) with R
+        bool rodKeyNow = (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS);
+        if (rodKeyNow) {
+            if (!rod.charging) startRodCharge(rod);
+            updateRodCharge(rod, dt);
+        } else {
+            if (rod.charging) {
+                releaseRod(rod, cameraPos, forward, right, up, kWaterHeight, timef);
+            }
         }
 
-        // While holding mouse: push the selected cube DOWN via velocity
-        if (leftMouseDown && activeCubeIndex != -1) {
-            cubePressTime += dt;
 
-            float &velY = (activeCubeIndex == 0) ? cubeVelY : cube2VelY;
+        // Boat steering
+        if (boatMode) {
+            bool fwdKey = (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS);
+            bool backKey = (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
+            bool leftKey = (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
+            bool rightKey = (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS);
 
-            // Strong downward acceleration; tweak 20.0f if needed
-            float pushStrength = 20.0f;
-            velY -= pushStrength * dt;
+            // When steering, align hull to current camera view so W/S are always "forward/back" relative to what you see.
+            if (fwdKey || backKey || leftKey || rightKey) {
+                const float boatYawVisualOffset = 90.0f;
+                float viewYawDeg = boatCamYawDeg + boatViewYawOffset - boatYawVisualOffset;
+                boat.yawDeg = viewYawDeg;
+                boatCamYawDeg = boat.yawDeg + boatYawVisualOffset;
+                boatViewYawOffset = 0.0f;
+                g_yawDeg = boatCamYawDeg;
+            }
+
+            updateBoat(boat, dt, fwdKey, backKey, leftKey, rightKey, kWaterHeight, timef);
+
+            // Camera locked to boat bow (driver seat)
+            auto shortestAngle = [](float deg) {
+                while (deg > 180.0f) deg -= 360.0f;
+                while (deg < -180.0f) deg += 360.0f;
+                return deg;
+            };
+
+            // Smoothly ease the camera yaw toward the hull heading so the bow stays in view.
+            const float boatYawVisualOffset = 90.0f; // model nose rotates +90 deg
+            const float followRate = 6.0f;           // lerp rate per second
+            float targetYaw = boat.yawDeg + boatYawVisualOffset;
+            float yawDiff = shortestAngle(targetYaw - boatCamYawDeg);
+            boatCamYawDeg += yawDiff * std::clamp(followRate * dt, 0.0f, 1.0f);
+
+            Vec3 boatDir = boatForward(boat);
+
+            const float seatHeight = 1.8f;
+            const float seatBackDist = 0.01f;
+            cameraPos = boat.pos - boatDir * seatBackDist + Vec3(0.0f, seatHeight, 0.0f);
+            // Apply view yaw offset and pitch for look-around without moving seat
+            float viewYawDeg = boatCamYawDeg + boatViewYawOffset;
+            float viewYawRad = viewYawDeg * (kPi / 180.0f);
+            float viewPitchRad = g_pitchDeg * (kPi / 180.0f);
+            Vec3 viewDir(std::cos(viewYawRad) * std::cos(viewPitchRad),
+                         std::sin(viewPitchRad),
+                         std::sin(viewYawRad) * std::cos(viewPitchRad));
+            Vec3 camTarget = cameraPos + normalize(viewDir) * 3.5f;
+            forward = normalize(camTarget - cameraPos);
+            right = normalize(cross(forward, worldUp));
+            up = normalize(cross(right, forward));
+            g_yawDeg = viewYawDeg;
+
+            // Boat vs cube collisions handled via helper
+            pushCubesWithBoat(boat, cubePos, cube2Pos);
         }
-
-        // On mouse release: give an upward impulse based on how long we held
-        if (!leftMouseDown && leftMouseWasDown && activeCubeIndex != -1) {
-            float &velY = (activeCubeIndex == 0) ? cubeVelY : cube2VelY;
-
-            float t = std::min(cubePressTime, 2.0f); // cap charge time
-            float baseImpulse  = 4.0f;
-            float extraImpulse = 6.0f * t;
-            velY += baseImpulse + extraImpulse;
-
-            activeCubeIndex = -1;
-            cubePressTime = 0.0f;
-        }
-
-        leftMouseWasDown = leftMouseDown;
 
         // Allow going underwater; clamp only far below
         cameraPos.y = std::max(cameraPos.y, -10.0f);
@@ -450,11 +530,26 @@ int main() {
 
         // Skipping stone motion (stones can hit cubes and add ripples)
         updateStones(dt, timef, kWaterHeight, cubePos, cube2Pos, cubeVelY, cube2VelY);
+        updateRod(rod, dt, timef, kWaterHeight);
         pruneRipples(timef);
+        updateFish(fish, dt, timef, kWaterHeight, boat, rod, cubePos, cube2Pos, fishCaught);
+        {
+            char title[128];
+            float spd = std::fabs(boat.speed);
+            std::snprintf(title, sizeof(title), "Water Demo | Mode: %s | Boat speed: %.2f | Fish: %d",
+                          boatMode ? "Boat" : "Free", spd, fishCaught);
+            glfwSetWindowTitle(window, title);
+        }
 
         // Model matrices for this frame
         Mat4 modelCube = Mat4::translate(cubePos);
         Mat4 modelCube2 = Mat4::translate(cube2Pos);
+        // Scale down/imported meshes so they fit the scene/water plane
+        constexpr float kBoatModelYawOffsetDeg = 180.0f; // align mesh nose with physics forward
+        Mat4 modelBoat = Mat4::translate(boat.pos) *
+                         Mat4::rotateY((boat.yawDeg + kBoatModelYawOffsetDeg) * (kPi / 180.0f)) *
+                         Mat4::rotateX(-kPi * 0.5f) *
+                         Mat4::scale(Vec3(0.016f, 0.016f, 0.016f));
         const float tileSize = halfSize * 2.0f;
         const int tileRadius = 3;
         float baseX = std::floor(cameraPos.x / tileSize) * tileSize;
@@ -500,6 +595,31 @@ int main() {
         glUniformMatrix4fv(locShadowModel, 1, GL_FALSE, modelCube2.m.data());
         glBindVertexArray(cube2.vao);
         glDrawArrays(GL_TRIANGLES, 0, cube2.vertexCount);
+
+        // Boat
+        glUniformMatrix4fv(locShadowModel, 1, GL_FALSE, modelBoat.m.data());
+        glBindVertexArray(boatMesh.vao);
+        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+
+        // Fish
+        for (const auto &f : fish) {
+            if (!f.active) continue;
+            Mat4 modelFish = Mat4::translate(f.pos) *
+                             Mat4::rotateY((f.yawDeg + 180.0f) * (kPi / 180.0f)) *
+                             Mat4::rotateX(-kPi * 0.5f) *
+                             Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
+            glUniformMatrix4fv(locShadowModel, 1, GL_FALSE, modelFish.m.data());
+            glBindVertexArray(fishMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
+        }
+
+        // Rod shadow (small red cube)
+        if (rod.active) {
+            Mat4 modelRod = Mat4::translate(rod.pos) * Mat4::scale(Vec3(0.12f, 0.12f, 0.12f));
+            glUniformMatrix4fv(locShadowModel, 1, GL_FALSE, modelRod.m.data());
+            glBindVertexArray(cube.vao);
+            glDrawArrays(GL_TRIANGLES, 0, cube.vertexCount);
+        }
 
         // Skipping stones
         for (int i = 0; i < kMaxStones; ++i) {
@@ -566,6 +686,25 @@ int main() {
         glBindVertexArray(cube2.vao);
         glDrawArrays(GL_TRIANGLES, 0, cube2.vertexCount);
 
+        // Boat
+        glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelBoat.m.data());
+        glUniform3f(locSceneColor, 0.65f, 0.35f, 0.25f);
+        glBindVertexArray(boatMesh.vao);
+        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+
+        // Fish
+        for (const auto &f : fish) {
+            if (!f.active) continue;
+            Mat4 modelFish = Mat4::translate(f.pos) *
+                             Mat4::rotateY((f.yawDeg + 180.0f) * (kPi / 180.0f)) *
+                             Mat4::rotateX(-kPi * 0.5f) *
+                             Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
+            glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelFish.m.data());
+            glUniform3f(locSceneColor, 0.6f, 1.0f, 1.4f);
+            glBindVertexArray(fishMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
+        }
+
         // Stones prepass
         for (int i = 0; i < kMaxStones; ++i) {
             const Stone &s = g_stones[i];
@@ -628,6 +767,25 @@ int main() {
         glUniform3f(locSceneColor, 0.2f, 0.4f, 0.85f);
         glBindVertexArray(cube2.vao);
         glDrawArrays(GL_TRIANGLES, 0, cube2.vertexCount);
+
+        // Boat reflected
+        glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelBoat.m.data());
+        glUniform3f(locSceneColor, 0.65f, 0.35f, 0.25f);
+        glBindVertexArray(boatMesh.vao);
+        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+
+        // Fish
+        for (const auto &f : fish) {
+            if (!f.active) continue;
+            Mat4 modelFish = Mat4::translate(f.pos) *
+                             Mat4::rotateY((f.yawDeg + 180.0f) * (kPi / 180.0f)) *
+                             Mat4::rotateX(-kPi * 0.5f) *
+                             Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
+            glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelFish.m.data());
+            glUniform3f(locSceneColor, 0.6f, 1.0f, 1.4f);
+            glBindVertexArray(fishMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
+        }
 
         // Stones reflected
         for (int i = 0; i < kMaxStones; ++i) {
@@ -731,6 +889,25 @@ int main() {
         glBindVertexArray(cube2.vao);
         glDrawArrays(GL_TRIANGLES, 0, cube2.vertexCount);
 
+        // Boat
+        glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelBoat.m.data());
+        glUniform3f(locSceneColor, 0.65f, 0.35f, 0.25f);
+        glBindVertexArray(boatMesh.vao);
+        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+
+        // Fish
+        for (const auto &f : fish) {
+            if (!f.active) continue;
+            Mat4 modelFish = Mat4::translate(f.pos) *
+                             Mat4::rotateY((f.yawDeg + 180.0f) * (kPi / 180.0f)) *
+                             Mat4::rotateX(-kPi * 0.5f) *
+                             Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
+            glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelFish.m.data());
+            glUniform3f(locSceneColor, 0.6f, 1.0f, 1.4f);
+            glBindVertexArray(fishMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
+        }
+
         // Skipping stones
         for (int i = 0; i < kMaxStones; ++i) {
             const Stone &s = g_stones[i];
@@ -739,6 +916,15 @@ int main() {
             Mat4 modelStone = Mat4::translate(s.pos) * Mat4::scale(Vec3(0.25f, 0.05f, 0.25f));
             glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelStone.m.data());
             glUniform3f(locSceneColor, 0.65f, 0.65f, 0.7f);
+            glBindVertexArray(cube.vao);
+            glDrawArrays(GL_TRIANGLES, 0, cube.vertexCount);
+        }
+
+        // Rod in main HDR pass (small red cube)
+        if (rod.active) {
+            Mat4 modelRod = Mat4::translate(rod.pos) * Mat4::scale(Vec3(0.12f, 0.12f, 0.12f));
+            glUniformMatrix4fv(locSceneModel, 1, GL_FALSE, modelRod.m.data());
+            glUniform3f(locSceneColor, 0.9f, 0.2f, 0.2f);
             glBindVertexArray(cube.vao);
             glDrawArrays(GL_TRIANGLES, 0, cube.vertexCount);
         }
@@ -949,6 +1135,8 @@ int main() {
     destroyMesh(cube);
     destroyMesh(cube2);
     destroyMesh(waterMesh);
+    destroyMesh(boatMesh);
+    destroyMesh(fishMesh);
 
     glDeleteProgram(sceneProgram);
     glDeleteProgram(waterProgram);
