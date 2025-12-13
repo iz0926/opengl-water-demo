@@ -50,7 +50,7 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -232,6 +232,13 @@ int main() {
     float cubeVelY = 0.0f;
     float cube2VelY = 0.0f;
 
+    // Cube click interaction state
+    bool leftMouseWasDown = false;
+    float cubePressTime = 0.0f;
+    int activeCubeIndex = -1;
+    int controlledCubeIndex = 0;
+    bool vWasDown = false;
+
     // Camera & timing
     Vec3 cameraPos(0.0f, 2.0f, 6.0f);
     const Vec3 worldUp(0.0f, 1.0f, 0.0f);
@@ -312,6 +319,14 @@ int main() {
         if (g_pitchDeg > 89.0f)  g_pitchDeg = 89.0f;
         if (g_pitchDeg < -89.0f) g_pitchDeg = -89.0f;
 
+        // Toggle which cube is controlled (V key)
+        bool vNow = (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS);
+        if (vNow && !vWasDown) {
+            controlledCubeIndex = 1 - controlledCubeIndex;
+            std::cout << "Now controlling cube " << controlledCubeIndex << std::endl;
+        }
+        vWasDown = vNow;
+
         // Throw charging (hold F)
         bool throwKeyNow = (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS);
         if (throwKeyNow) {
@@ -341,6 +356,42 @@ int main() {
                 g_throwCharge = 0.0f;
             }
         }
+
+        // Cube mouse interaction 
+        int mouseState = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+        bool leftMouseDown = (mouseState == GLFW_PRESS);
+
+        // On mouse press: start pushing the controlled cube
+        if (leftMouseDown && !leftMouseWasDown) {
+            activeCubeIndex = controlledCubeIndex; // 0 or 1
+            cubePressTime = 0.0f;
+        }
+
+        // While holding mouse: push the selected cube DOWN via velocity
+        if (leftMouseDown && activeCubeIndex != -1) {
+            cubePressTime += dt;
+
+            float &velY = (activeCubeIndex == 0) ? cubeVelY : cube2VelY;
+
+            // Strong downward acceleration; tweak 20.0f if needed
+            float pushStrength = 20.0f;
+            velY -= pushStrength * dt;
+        }
+
+        // On mouse release: give an upward impulse based on how long we held
+        if (!leftMouseDown && leftMouseWasDown && activeCubeIndex != -1) {
+            float &velY = (activeCubeIndex == 0) ? cubeVelY : cube2VelY;
+
+            float t = std::min(cubePressTime, 2.0f); // cap charge time
+            float baseImpulse  = 4.0f;
+            float extraImpulse = 6.0f * t;
+            velY += baseImpulse + extraImpulse;
+
+            activeCubeIndex = -1;
+            cubePressTime = 0.0f;
+        }
+
+        leftMouseWasDown = leftMouseDown;
 
         // Allow going underwater; clamp only far below
         cameraPos.y = std::max(cameraPos.y, -10.0f);
@@ -380,20 +431,20 @@ int main() {
         // Buoyancy update for floating cubes
         auto updateFloat = [&](Vec3 &pos, float &velY) {
             Vec3 sample(pos.x, 0.0f, pos.z);
-        Vec3 surf = evalGerstnerXZ(sample, timef);
-        float surfaceY = kWaterHeight + surf.y + rippleFieldHeight(sample, timef);
-        float targetY = surfaceY + 0.3f;
-        float dy = targetY - pos.y;
-        float stiffness = 4.0f;
-        float damping = 1.5f;
-        velY += stiffness * dy * dt;
-        velY *= std::exp(-damping * dt);
-        pos.y += velY * dt;
-        // Gentle lateral push from ripple slope
-        Vec3 grad = rippleFieldGrad(sample, timef);
-        pos.x += grad.x * 0.5f * dt;
-        pos.z += grad.z * 0.5f * dt;
-    };
+            Vec3 surf = evalGerstnerXZ(sample, timef);
+            float surfaceY = kWaterHeight + surf.y + rippleFieldHeight(sample, timef);
+            float targetY = surfaceY + 0.3f;
+            float dy = targetY - pos.y;
+            float stiffness = 4.0f;
+            float damping = 1.5f;
+            velY += stiffness * dy * dt;
+            velY *= std::exp(-damping * dt);
+            pos.y += velY * dt;
+            // Gentle lateral push from ripple slope
+            Vec3 grad = rippleFieldGrad(sample, timef);
+            pos.x += grad.x * 0.5f * dt;
+            pos.z += grad.z * 0.5f * dt;
+        };
         updateFloat(cubePos, cubeVelY);
         updateFloat(cube2Pos, cube2VelY);
 
