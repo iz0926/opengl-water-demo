@@ -13,12 +13,12 @@ struct Vec2 {
 
 struct Vec3 {
     float x, y, z;
-    Vec3() : x(0), y(0), z(0) {}
-    Vec3(float xx, float yy, float zz) : x(xx), y(yy), z(zz) {}
+    constexpr Vec3() : x(0), y(0), z(0) {}
+    constexpr Vec3(float xx, float yy, float zz) : x(xx), y(yy), z(zz) {}
 
-    Vec3 operator+(const Vec3 &o) const { return Vec3(x + o.x, y + o.y, z + o.z); }
-    Vec3 operator-(const Vec3 &o) const { return Vec3(x - o.x, y - o.y, z - o.z); }
-    Vec3 operator*(float s) const { return Vec3(x * s, y * s, z * s); }
+    constexpr Vec3 operator+(const Vec3 &o) const { return Vec3(x + o.x, y + o.y, z + o.z); }
+    constexpr Vec3 operator-(const Vec3 &o) const { return Vec3(x - o.x, y - o.y, z - o.z); }
+    constexpr Vec3 operator*(float s) const { return Vec3(x * s, y * s, z * s); }
     Vec3 &operator+=(const Vec3 &o) { x += o.x; y += o.y; z += o.z; return *this; }
 };
 

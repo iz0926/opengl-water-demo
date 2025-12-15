@@ -97,6 +97,7 @@ void main() {
     vWorldPos = worldPos.xyz;
     vNormal   = normalize(mat3(uModel) * n);
 
+    // Higher tiling to shrink visible grid patterns in reflections (denser)
     vUv = xz * 0.1;
     vDudvUv = xz * 0.05 + vec2(uMove * 0.15, uMove * 0.11);
     vCrest = crest;

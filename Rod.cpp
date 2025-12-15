@@ -4,6 +4,7 @@
 void startRodCharge(Rod &r) {
     r.charging = true;
     r.charge = 0.0f;
+    r.hasCaught = false;
 }
 
 void updateRodCharge(Rod &r, float dt) {
@@ -13,7 +14,7 @@ void updateRodCharge(Rod &r, float dt) {
     if (r.charge > 1.0f) r.charge = 1.0f;
 }
 
-void releaseRod(Rod &r, const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &right, const Vec3 &up, float waterHeight, float timef) {
+void releaseRod(Rod &r, const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &right, const Vec3 &up, float /*waterHeight*/, float /*timef*/) {
     if (!r.charging) return;
     float t = r.charge;
     float minAngle = 8.0f;
@@ -32,16 +33,29 @@ void releaseRod(Rod &r, const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &
     r.active = true;
     r.flying = true;
     r.timer = 0.0f;
+    r.hasCaught = false;
     r.pos = cameraPos + forward * 0.3f + right * 0.2f + up * 0.2f;
     r.vel = launchDir * speed;
-    addRipple(Vec3(r.pos.x, waterHeight, r.pos.z), timef);
-
     r.charging = false;
     r.charge = 0.0f;
 }
 
 void updateRod(Rod &r, float dt, float timef, float waterHeight) {
     if (!r.active) return;
+
+    // If already splashed, pin it near the surface briefly then remove.
+    if (!r.flying) {
+        r.timer += dt;
+        Vec3 sample(r.pos.x, 0.0f, r.pos.z);
+        Vec3 surf = evalGerstnerXZ(sample, timef);
+        float surfaceY = waterHeight + surf.y + rippleFieldHeight(sample, timef);
+        r.pos.y = surfaceY + 0.05f;
+        if (r.timer > 2.0f) {
+            r.active = false;
+            r.hasCaught = false;
+        }
+        return;
+    }
 
     r.timer += dt;
     // Ballistic motion with mild drag
@@ -56,12 +70,16 @@ void updateRod(Rod &r, float dt, float timef, float waterHeight) {
     if (r.pos.y < surfaceY + 0.05f) {
         r.pos.y = surfaceY + 0.05f;
         r.vel.y = 0.0f;
-        r.flying = false;
+        if (r.flying) {
+            addRipple(Vec3(r.pos.x, waterHeight, r.pos.z), timef); // small ripple at impact
+        }
+        r.flying = false; // stop bouncing; stays once
     }
 
     if (r.timer > 6.0f) {
         r.active = false;
         r.flying = false;
+        r.hasCaught = false;
     }
 }
 

@@ -207,6 +207,11 @@ void main() {
     foamAmount = clamp(foamAmount, 0.0, 1.0);
     color = mix(color, uFoamColor, foamAmount);
 
+    // Specular sparkle aligned with sun reflection
+    vec3 R = reflect(-V, N);
+    float sparkle = pow(max(dot(R, L), 0.0), 200.0);
+    color += sparkle * vec3(1.0, 0.9, 0.7);
+
     float sss = pow(max(dot(-L, V), 0.0), 3.0);
     vec3 sssColor = vec3(0.7, 0.9, 0.7);
     float sssStrength = (1.0 - depthNorm) * 0.6;

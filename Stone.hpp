@@ -35,4 +35,10 @@ Vec3 rippleFieldGrad(const Vec3 &pos, float time);
 void spawnStone(const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &up,
                 float angleDownDeg, float speed);
 void updateStones(float dt, float timef, float waterHeight,
-                  Vec3 &cubePos, Vec3 &cube2Pos, float &cubeVelY, float &cube2VelY);
+                  Vec3 &cubePos, Vec3 &cube2Pos, float &cubeVelY, float &cube2VelY,
+                  const Vec3 &boatPos, float boatRadius);
+bool consumeStoneSplash();
+bool consumeWaterSplash();
+bool consumeTinySplash();
+bool consumeCubeHit();
+bool consumeBoatHit();

@@ -11,8 +11,9 @@ struct Rod {
     bool flying;
     bool charging;
     float charge;
+    bool hasCaught;
 
-    Rod() : pos(), vel(), timer(0.0f), active(false), flying(false), charging(false), charge(0.0f) {}
+    Rod() : pos(), vel(), timer(0.0f), active(false), flying(false), charging(false), charge(0.0f), hasCaught(false) {}
 };
 
 void startRodCharge(Rod &r);

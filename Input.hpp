@@ -8,6 +8,8 @@ extern bool g_firstMouse;
 extern double g_lastCursorX;
 extern double g_lastCursorY;
 extern bool g_mouseCaptured;
+extern bool g_inBoatMode;
+extern float g_mouseSensitivity;
 extern bool g_throwCharging;
 extern float g_throwCharge;
 

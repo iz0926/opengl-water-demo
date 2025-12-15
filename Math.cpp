@@ -14,10 +14,10 @@ Vec3 normalize(const Vec3 &v) {
     const float invLen = 1.0f / std::sqrt(len2);
     return v * invLen;
 }
-
 float length(const Vec3 &v) {
     return std::sqrt(dot(v, v));
 }
+
 
 Mat4 Mat4::identity() {
     Mat4 r;

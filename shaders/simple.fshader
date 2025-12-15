@@ -72,9 +72,9 @@ void main() {
             caustic = pow(caustic, 4.0);
 
             float depthFade = 1.0 - clamp(depthBelow / 4.0, 0.0, 1.0);
-            float intensity = 2.0 * depthFade;
+            float intensity = 1.1 * depthFade; // softer to reduce bright patches
 
-            vec3 causticColor = vec3(1.6, 1.4, 1.0);
+            vec3 causticColor = vec3(0.9, 0.9, 0.8);
             color += causticColor * caustic * intensity;
         }
     }

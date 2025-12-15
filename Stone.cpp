@@ -5,15 +5,20 @@
 Stone g_stones[kMaxStones];
 RippleEvent g_ripples[kMaxRipples];
 static int g_rippleWriteIndex = 0;
+static bool g_pendingSplash = false;
+static bool g_pendingWaterSplash = false;
+static bool g_pendingTinySplash = false;
+static bool g_pendingCubeHit = false;
+static bool g_pendingBoatHit = false;
 
 inline float singleRippleHeight(float r, float age) {
-    if (age < 0.0f || age > 8.0f) return 0.0f;
-    const float freq = 9.0f;
-    const float speed = 2.0f;
-    const float decay = 0.35f;
-    const float scale = 0.12f;
+    if (age < 0.0f || age > 2.5f) return 0.0f; // very short lifetime
+    const float freq = 5.0f;   // lower frequency
+    const float speed = 0.8f;  // slower propagation
+    const float decay = 0.5f;
+    const float scale = 0.05f; // smaller amplitude
     float phase = freq * (r - speed * age);
-    float envelope = std::exp(-decay * r) * std::exp(-0.18f * age);
+    float envelope = std::exp(-decay * r) * std::exp(-0.7f * age); // faster time decay
     return scale * envelope * std::sin(phase);
 }
 
@@ -23,10 +28,11 @@ void addRipple(const Vec3 &pos, float time) {
     r.startTime = time;
     r.active = true;
     g_rippleWriteIndex = (g_rippleWriteIndex + 1) % kMaxRipples;
+    g_pendingSplash = true;
 }
 
 void pruneRipples(float time) {
-    const float kLife = 8.0f;
+    const float kLife = 2.5f; // very short ripple lifetime
     for (int i = 0; i < kMaxRipples; ++i) {
         if (!g_ripples[i].active) continue;
         if (time - g_ripples[i].startTime > kLife) {
@@ -54,6 +60,36 @@ Vec3 rippleFieldGrad(const Vec3 &pos, float time) {
     float hx = rippleFieldHeight(Vec3(pos.x + eps, pos.y, pos.z), time);
     float hz = rippleFieldHeight(Vec3(pos.x, pos.y, pos.z + eps), time);
     return Vec3((hx - h0) / eps, 0.0f, (hz - h0) / eps);
+}
+
+bool consumeStoneSplash() {
+    bool was = g_pendingSplash;
+    g_pendingSplash = false;
+    return was;
+}
+
+bool consumeWaterSplash() {
+    bool was = g_pendingWaterSplash;
+    g_pendingWaterSplash = false;
+    return was;
+}
+
+bool consumeTinySplash() {
+    bool was = g_pendingTinySplash;
+    g_pendingTinySplash = false;
+    return was;
+}
+
+bool consumeCubeHit() {
+    bool was = g_pendingCubeHit;
+    g_pendingCubeHit = false;
+    return was;
+}
+
+bool consumeBoatHit() {
+    bool was = g_pendingBoatHit;
+    g_pendingBoatHit = false;
+    return was;
 }
 
 void spawnStone(const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &up,
@@ -93,7 +129,8 @@ void spawnStone(const Vec3 &cameraPos, const Vec3 &forward, const Vec3 &up,
 }
 
 void updateStones(float dt, float timef, float waterHeight,
-                  Vec3 &cubePos, Vec3 &cube2Pos, float &cubeVelY, float &cube2VelY) {
+                  Vec3 &cubePos, Vec3 &cube2Pos, float &cubeVelY, float &cube2VelY,
+                  const Vec3 &boatPos, float boatRadius) {
     const Vec3 gravity(0.0f, -9.81f, 0.0f);
 
     for (int i = 0; i < kMaxStones; ++i) {
@@ -149,7 +186,9 @@ void updateStones(float dt, float timef, float waterHeight,
                 s.bounces++;
 
                 addRipple(Vec3(newPos.x, waterHeight, newPos.z), timef);
+                g_pendingWaterSplash = true;
             } else {
+                g_pendingTinySplash = true;
                 s.active = false;
                 continue;
             }
@@ -164,11 +203,22 @@ void updateStones(float dt, float timef, float waterHeight,
                 Vec3 dir = normalize(vel);
                 cPos += dir * 0.08f;
                 addRipple(newPos, timef);
+                g_pendingCubeHit = true;
                 s.active = false;
             }
         };
         if (s.active) tryHitCube(cubePos, cubeVelY);
         if (s.active) tryHitCube(cube2Pos, cube2VelY);
+
+        if (s.active) {
+            Vec3 d = newPos - boatPos;
+            float dist2 = dot(d, d);
+            if (dist2 < boatRadius * boatRadius) {
+                addRipple(newPos, timef);
+                g_pendingBoatHit = true;
+                s.active = false;
+            }
+        }
 
         s.pos = newPos;
         s.vel = vel;
