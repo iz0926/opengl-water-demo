@@ -49,41 +49,33 @@ Menu: ESC opens a top panel (ImGui) with control hints and sliders.
 - Audio: under `assets/audio`
 
 ## References
-\begin{itemize}
-  \item Shallow Water Equations: \url{https://en.wikipedia.org/wiki/Shallow_water_equations}
-  \item J. Tessendorf, \textit{Effective Water Simulation from Physical Models}, GPU Gems, NVIDIA: \url{https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models}
-  \item Dotcrossdot, \textit{Water Ocean Shader}: \url{https://medium.com/dotcrossdot/water-ocean-shader-9173e0977f98}
-  \item I. A. Strumberger et al., \textit{Real-Time Water Simulation}, NAUN: \url{https://www.naun.org/main/NAUN/computers/ijcomputers-41.pdf}
-  \item Derivation of skipping stones over water: \url{https://physics.stackexchange.com/questions/176108/deriving-equation-for-skipping-stones-over-water}
-  \item Physics of Floating Cube Spring Movement: \url{https://www.myphysicslab.com/springs/single-spring-en.html} and \url{https://gafferongames.com/post/spring_physics/}
-\end{itemize}
+- Shallow Water Equations: https://en.wikipedia.org/wiki/Shallow_water_equations  
+- J. Tessendorf, *Effective Water Simulation from Physical Models*, GPU Gems (NVIDIA): https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models  
+- Dotcrossdot, *Water Ocean Shader*: https://medium.com/dotcrossdot/water-ocean-shader-9173e0977f98  
+- I. A. Strumberger et al., *Real-Time Water Simulation*, NAUN: https://www.naun.org/main/NAUN/computers/ijcomputers-41.pdf  
+- Derivation of skipping stones over water: https://physics.stackexchange.com/questions/176108/deriving-equation-for-skipping-stones-over-water  
+- Physics of Floating Cube Spring Movement: https://www.myphysicslab.com/springs/single-spring-en.html and https://gafferongames.com/post/spring_physics/
 
-\subsection*{3D Models}
-\begin{itemize}
-  \item Fish model: \url{https://free3d.com/3d-model/fish-v1--996288.html}
-  \item Speedboat model: \url{https://free3d.com/3d-model/speedboat-v01--840133.html}
-  \item Treasure chest model: \url{https://free3d.com/3d-model/treasure-chest-91359.html}
-\end{itemize}
+### 3D Models
+- Fish model: https://free3d.com/3d-model/fish-v1--996288.html  
+- Speedboat model: https://free3d.com/3d-model/speedboat-v01--840133.html  
+- Treasure chest model: https://free3d.com/3d-model/treasure-chest-91359.html
 
-\subsection*{Code Libraries and Tools}
-\begin{itemize}
-  \item jrafix post-processing effects: \url{https://gitlab.com/kernitus/jrafix}
-  \item Dear ImGui: \url{https://github.com/ocornut/imgui}
-\end{itemize}
+### Code Libraries and Tools
+- jrafix post-processing effects: https://gitlab.com/kernitus/jrafix  
+- Dear ImGui: https://github.com/ocornut/imgui
 
-\subsection*{Audio Assets}
-\begin{itemize}
-  \item water\_drop1 / water\_drop2: \url{https://www.youtube.com/watch?v=6L0HBSu_ZaY}
-  \item water\_drop3: \url{https://pixabay.com/sound-effects/water-drop-stereo-257180/}
-  \item relaxing zelda music + ocean waves: \url{https://www.youtube.com/watch?v=LfdCMBCt2r4}
-  \item Speed Boat Ride Ambience: \url{https://www.youtube.com/watch?v=1frh0wqXb1M}
-  \item Magic WHOOSH: \url{https://www.youtube.com/watch?v=pyzUhkKf2Qo}
-  \item Magical Twinkle Sound Effect (HD): \url{https://www.youtube.com/watch?v=UZcSVrHi3-I}
-  \item fish\_reel: \url{https://www.youtube.com/watch?v=HStwgFswd18}
-  \item hit\_thud: \url{https://pixabay.com/sound-effects/cinematic-thud-fx-379991/}
-  \item mouse\_click: \url{https://pixabay.com/sound-effects/mouse-click-290204/}
-  \item game\_menu: \url{https://www.youtube.com/watch?v=sW8TKZtoND8}
-  \item tiny\_splash: \url{https://pixabay.com/sound-effects/tiny-splash-83778/}
-  \item underwater\_sounds: \url{https://www.youtube.com/watch?v=Pf4ZVHyA7Bg}
-  \item success: \url{https://www.youtube.com/watch?v=n4qnDaSidJs}
-\end{itemize}
+### Audio Assets
+- water_drop1 / water_drop2: https://www.youtube.com/watch?v=6L0HBSu_ZaY  
+- water_drop3: https://pixabay.com/sound-effects/water-drop-stereo-257180/  
+- relaxing zelda music + ocean waves: https://www.youtube.com/watch?v=LfdCMBCt2r4  
+- Speed Boat Ride Ambience: https://www.youtube.com/watch?v=1frh0wqXb1M  
+- Magic WHOOSH: https://www.youtube.com/watch?v=pyzUhkKf2Qo  
+- Magical Twinkle Sound Effect (HD): https://www.youtube.com/watch?v=UZcSVrHi3-I  
+- fish_reel: https://www.youtube.com/watch?v=HStwgFswd18  
+- hit_thud: https://pixabay.com/sound-effects/cinematic-thud-fx-379991/  
+- mouse_click: https://pixabay.com/sound-effects/mouse-click-290204/  
+- game_menu: https://www.youtube.com/watch?v=sW8TKZtoND8  
+- tiny_splash: https://pixabay.com/sound-effects/tiny-splash-83778/  
+- underwater_sounds: https://www.youtube.com/watch?v=Pf4ZVHyA7Bg  
+- success: https://www.youtube.com/watch?v=n4qnDaSidJs
