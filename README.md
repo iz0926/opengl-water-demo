@@ -1,6 +1,7 @@
 # CS1750 Computer Graphics: Interactive OpenGL Water Demo
 
 Interactive OpenGL/GLFW sandbox with dynamic water, HDR/bloom, stone skipping, fishing lure, boat driving, treasure chests, and spatial audio. Code is split into small modules (math, GL helpers, meshes, waves, stones, rod, chest, input, audio).
+[![OpenGL Water World Demo](https://img.youtube.com/vi/X6Ih3aCoQeQ/0.jpg)](https://www.youtube.com/watch?v=X6Ih3aCoQeQ)
 
 ## Build
 
