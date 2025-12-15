@@ -4,10 +4,14 @@ Interactive OpenGL/GLFW sandbox with dynamic water, HDR/bloom, stone skipping, f
 
 ## Build
 
-Dependencies: `glfw`, `glew`, `SDL2`, `SDL2_mixer`, and an OpenGL 3.3+ capable GPU. Dear ImGui is vendored in `imgui/`. On macOS with Homebrew the Makefile looks in `/opt/homebrew` by default. Install with:
+Dependencies: `glfw`, `glew`, `SDL2`, `SDL2_mixer`, and an OpenGL 3.3+ capable GPU. Dear ImGui is vendored in `imgui/`. Audio assets are stored via Git LFS.
+
+On macOS with Homebrew the Makefile looks in `/opt/homebrew` by default. Install with:
 
 ```bash
 brew install glfw glew sdl2 sdl2_mixer
+brew install git-lfs
+git lfs install
 make clean && make
 ```
 
@@ -46,7 +50,7 @@ Menu: ESC opens a top panel (ImGui) with control hints and sliders.
 
 ## Assets
 - Models: under `assets/models/SpeedBoat`, `assets/models/Fish`, `assets/models/chest.obj` (OBJ/MTL).
-- Audio: under `assets/audio`
+- Audio: under `assets/audio` (Git LFS). After cloning, run `git lfs install` and `git lfs pull` to download the WAVs; otherwise you’ll see “Unrecognized audio format” errors.
 
 ## References
 - Shallow Water Equations: https://en.wikipedia.org/wiki/Shallow_water_equations  
