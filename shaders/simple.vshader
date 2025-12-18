@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
 
 uniform mat4 uViewProj;
 uniform mat4 uModel;
@@ -13,6 +14,7 @@ out vec3 vWorldPos;
 out vec3 vNormal;
 out vec4 vShadowCoord;
 out float vHeight;
+out vec2 vUV;
 
 void main() {
     vec4 worldPos = uModel * vec4(aPos, 1.0);
@@ -20,6 +22,7 @@ void main() {
     vNormal   = mat3(uModel) * aNormal;
     vShadowCoord = uLightVP * worldPos;
     vHeight = worldPos.y;
+    vUV = aUV;
 
     if (uUseClip == 1) {
         gl_ClipDistance[0] = worldPos.y - uClipY;
@@ -29,4 +32,3 @@ void main() {
 
     gl_Position = uViewProj * worldPos;
 }
-

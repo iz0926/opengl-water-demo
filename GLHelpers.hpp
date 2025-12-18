@@ -37,3 +37,4 @@ void destroyShadowMap(ShadowMap &sm);
 
 GLuint createWaterNormalMap(int size, float freq);
 GLuint createDudvTexture(int size);
+GLuint loadTexture2D(const std::string &path, bool flipY = true);

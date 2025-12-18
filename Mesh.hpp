@@ -11,7 +11,7 @@ struct Mesh {
     GLsizei vertexCount = 0;
 };
 
-Mesh makeMesh(const std::vector<float> &interleavedPosNormal);
+Mesh makeMesh(const std::vector<float> &interleavedPosNormal, bool hasTexcoord = false);
 void destroyMesh(Mesh &m);
 
 Mesh makeGroundMesh(float halfSize);

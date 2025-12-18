@@ -221,6 +221,8 @@ GLuint fsQuadVbo = 0;
         GLint model;
         GLint lightDir;
         GLint color;
+        GLint texture;
+        GLint useTexture;
         GLint eyePos;
         GLint clipY;
         GLint useClip;
@@ -239,6 +241,8 @@ GLuint fsQuadVbo = 0;
         glGetUniformLocation(sceneProgram, "uModel"),
         glGetUniformLocation(sceneProgram, "uLightDir"),
         glGetUniformLocation(sceneProgram, "uColor"),
+        glGetUniformLocation(sceneProgram, "uTexture"),
+        glGetUniformLocation(sceneProgram, "uUseTexture"),
         glGetUniformLocation(sceneProgram, "uEyePos"),
         glGetUniformLocation(sceneProgram, "uClipY"),
         glGetUniformLocation(sceneProgram, "uUseClip"),
@@ -394,7 +398,9 @@ GLuint fsQuadVbo = 0;
     Mesh cube2  = makeCubeMesh();
     Mesh waterMesh = makeGroundMesh(halfSize); // big plane at water height
     Mesh boatMesh{};
+    GLuint boatTexture = 0;
     Mesh fishMesh{};
+    GLuint fishTexture = 0;
     Mesh chestMesh{};
     try {
         boatMesh = loadObjMesh("assets/models/SpeedBoat/10634_SpeedBoat_v01_LOD3.obj");
@@ -403,10 +409,20 @@ GLuint fsQuadVbo = 0;
         boatMesh = makeCubeMesh();
     }
     try {
+        boatTexture = loadTexture2D("assets/models/SpeedBoat/10634_SpeedBoat_v01.jpg");
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << " using flat color for boat\n";
+    }
+    try {
         fishMesh = loadObjMesh("assets/models/Fish/12265_Fish_v1_L2.obj");
     } catch (const std::exception &e) {
         std::cerr << e.what() << " falling back to cube for fish" << std::endl;
         fishMesh = makeCubeMesh();
+    }
+    try {
+        fishTexture = loadTexture2D("assets/models/Fish/fish.jpg");
+    } catch (const std::exception &e) {
+        std::cerr << e.what() << " using flat color for fish\n";
     }
     try {
         chestMesh = loadObjMesh("assets/models/chest.obj");
@@ -1075,6 +1091,8 @@ GLuint fsQuadVbo = 0;
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(sceneProgram);
+        glUniform1i(sceneU.shadowMap, 5);
+        glUniform1i(sceneU.texture, 0);
         glUniformMatrix4fv(sceneU.viewProj, 1, GL_FALSE, viewProj.m.data());
         glUniform3f(sceneU.lightDir, sunDir.x, sunDir.y, sunDir.z);
         glUniform3f(sceneU.eyePos, cameraPos.x, cameraPos.y, cameraPos.z);
@@ -1089,10 +1107,12 @@ GLuint fsQuadVbo = 0;
         glUniform1f(sceneU.underFogDensity, 0.06f);
         glUniformMatrix4fv(sceneU.lightVP, 1, GL_FALSE, lightVP.m.data());
         glUniform1f(sceneU.time, timef);
+        glUniform1i(sceneU.useTexture, 0);
 
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowMap.depthTex);
-        glUniform1i(sceneU.shadowMap, 5);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // Ground tiles
         glUniform3f(sceneU.color, 0.35f, 0.55f, 0.35f);
@@ -1116,9 +1136,20 @@ GLuint fsQuadVbo = 0;
 
         // Boat
         glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelBoat.m.data());
-        glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
-        glBindVertexArray(boatMesh.vao);
-        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+        {
+            const bool boatHasTex = boatTexture != 0;
+            glUniform1i(sceneU.useTexture, boatHasTex ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, boatTexture);
+            if (boatHasTex) {
+                glUniform3f(sceneU.color, 1.0f, 1.0f, 1.0f);
+            } else {
+                glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
+            }
+            glBindVertexArray(boatMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+            glUniform1i(sceneU.useTexture, 0);
+        }
 
         // Fish
         for (const auto &f : fish) {
@@ -1129,11 +1160,20 @@ GLuint fsQuadVbo = 0;
                              Mat4::rotateX(-kPi * 0.5f) *
                              Mat4::rotateZ(rollRad) *
                              Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
-            glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelFish.m.data());
-            glUniform3f(sceneU.color, 0.6f, 1.0f, 1.4f);
+        glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelFish.m.data());
+            glUniform1i(sceneU.useTexture, fishTexture ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, fishTexture);
+            if (fishTexture) {
+                glUniform3f(sceneU.color, 1.0f, 1.0f, 1.0f);
+            } else {
+                glUniform3f(sceneU.color, 0.6f, 1.0f, 1.4f);
+            }
             glBindVertexArray(fishMesh.vao);
             glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
         }
+        glUniform1i(sceneU.useTexture, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // Stones prepass
         for (int i = 0; i < kMaxStones; ++i) {
@@ -1168,6 +1208,8 @@ GLuint fsQuadVbo = 0;
         glCullFace(GL_FRONT);
 
         glUseProgram(sceneProgram);
+        glUniform1i(sceneU.shadowMap, 5);
+        glUniform1i(sceneU.texture, 0);
         glUniformMatrix4fv(sceneU.viewProj, 1, GL_FALSE, reflViewProj.m.data());
         glUniform3f(sceneU.lightDir, sunDir.x, sunDir.y, sunDir.z);
         glUniform3f(sceneU.eyePos, reflPos.x, reflPos.y, reflPos.z);
@@ -1176,10 +1218,10 @@ GLuint fsQuadVbo = 0;
         glUniformMatrix4fv(sceneU.lightVP, 1, GL_FALSE, lightVP.m.data());
         glUniform1i(sceneU.underwater, 0);
         glUniform1f(sceneU.time, timef);
+        glUniform1i(sceneU.useTexture, 0);
 
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowMap.depthTex);
-        glUniform1i(sceneU.shadowMap, 5);
 
         // Ground tiles reflected
         glUniform3f(sceneU.color, 0.35f, 0.55f, 0.35f);
@@ -1203,9 +1245,20 @@ GLuint fsQuadVbo = 0;
 
         // Boat reflected
         glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelBoat.m.data());
-        glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
-        glBindVertexArray(boatMesh.vao);
-        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+        {
+            const bool boatHasTex = boatTexture != 0;
+            glUniform1i(sceneU.useTexture, boatHasTex ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, boatTexture);
+            if (boatHasTex) {
+                glUniform3f(sceneU.color, 1.0f, 1.0f, 1.0f);
+            } else {
+                glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
+            }
+            glBindVertexArray(boatMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+            glUniform1i(sceneU.useTexture, 0);
+        }
 
         // Fish
         for (const auto &f : fish) {
@@ -1215,10 +1268,16 @@ GLuint fsQuadVbo = 0;
                              Mat4::rotateX(-kPi * 0.5f) *
                              Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
             glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelFish.m.data());
-            glUniform3f(sceneU.color, 0.6f, 1.0f, 1.4f);
+            glUniform1i(sceneU.useTexture, fishTexture ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, fishTexture);
+            Vec3 fishBaseColor = fishTexture ? Vec3(1.0f, 1.0f, 1.0f) : Vec3(0.6f, 1.0f, 1.4f);
+            glUniform3f(sceneU.color, fishBaseColor.x, fishBaseColor.y, fishBaseColor.z);
             glBindVertexArray(fishMesh.vao);
             glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
         }
+        glUniform1i(sceneU.useTexture, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // Stones reflected
         for (int i = 0; i < kMaxStones; ++i) {
@@ -1299,6 +1358,8 @@ GLuint fsQuadVbo = 0;
 
         // Scene geometry to HDR
         glUseProgram(sceneProgram);
+        glUniform1i(sceneU.shadowMap, 5);
+        glUniform1i(sceneU.texture, 0);
         glUniformMatrix4fv(sceneU.viewProj, 1, GL_FALSE, viewProj.m.data());
         glUniform3f(sceneU.lightDir, sunDir.x, sunDir.y, sunDir.z);
         glUniform3f(sceneU.eyePos, cameraPos.x, cameraPos.y, cameraPos.z);
@@ -1313,10 +1374,12 @@ GLuint fsQuadVbo = 0;
         glUniform1f(sceneU.underFogDensity, 0.06f);
         glUniformMatrix4fv(sceneU.lightVP, 1, GL_FALSE, lightVP.m.data());
         glUniform1f(sceneU.time, timef);
+        glUniform1i(sceneU.useTexture, 0);
 
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, shadowMap.depthTex);
-        glUniform1i(sceneU.shadowMap, 5);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // Chest glow in screen space (non-interactive)
         if (chest.active) {
@@ -1361,9 +1424,20 @@ GLuint fsQuadVbo = 0;
 
         // Boat
         glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelBoat.m.data());
-        glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
-        glBindVertexArray(boatMesh.vao);
-        glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+        {
+            const bool boatHasTex = boatTexture != 0;
+            glUniform1i(sceneU.useTexture, boatHasTex ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, boatTexture);
+            if (boatHasTex) {
+                glUniform3f(sceneU.color, 1.0f, 1.0f, 1.0f);
+            } else {
+                glUniform3f(sceneU.color, 0.65f, 0.35f, 0.25f);
+            }
+            glBindVertexArray(boatMesh.vao);
+            glDrawArrays(GL_TRIANGLES, 0, boatMesh.vertexCount);
+            glUniform1i(sceneU.useTexture, 0);
+        }
 
         // Fish
         for (const auto &f : fish) {
@@ -1373,10 +1447,15 @@ GLuint fsQuadVbo = 0;
                              Mat4::rotateX(-kPi * 0.5f) *
                              Mat4::scale(Vec3(0.03f, 0.03f, 0.03f));
             glUniformMatrix4fv(sceneU.model, 1, GL_FALSE, modelFish.m.data());
+            glUniform1i(sceneU.useTexture, fishTexture ? 1 : 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, fishTexture);
             glUniform3f(sceneU.color, 0.6f, 1.0f, 1.4f);
             glBindVertexArray(fishMesh.vao);
             glDrawArrays(GL_TRIANGLES, 0, fishMesh.vertexCount);
         }
+        glUniform1i(sceneU.useTexture, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         // Skipping stones
         for (int i = 0; i < kMaxStones; ++i) {

@@ -4,10 +4,13 @@ in vec3 vWorldPos;
 in vec3 vNormal;
 in vec4 vShadowCoord;
 in float vHeight;
+in vec2 vUV;
 
 out vec4 fragColor;
 
 uniform vec3 uColor;
+uniform sampler2D uTexture;
+uniform int   uUseTexture;
 uniform vec3 uLightDir;   // direction light travels (world)
 uniform vec3 uEyePos;
 
@@ -55,7 +58,7 @@ void main() {
 
     float shadow = shadowFactor(vShadowCoord);
 
-    vec3 base = uColor;
+    vec3 base = uUseTexture == 1 ? texture(uTexture, vUV).rgb : uColor;
     vec3 lit = base * (ambient + NdotL * shadow) + rimColor * shadow;
     vec3 color = lit;
 
